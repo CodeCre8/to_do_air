@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/Users/codecre8/Documents/to_do_air/venv"
+VIRTUAL_ENV="/Users/codecre8/Documents/Coding/to_do_air/venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

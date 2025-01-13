@@ -29,7 +29,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/Users/codecre8/Documents/to_do_air/venv"
+set -gx VIRTUAL_ENV "/Users/codecre8/Documents/Coding/to_do_air/venv"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH
