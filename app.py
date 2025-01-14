@@ -1,45 +1,79 @@
-from kivy.app import App
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
-from kivy.uix.label import Label
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.scrollview import ScrollView
+from flask import Flask, render_template, request, redirect, url_for
+import sqlite3
+from datetime import datetime
 
-class ToDoApp(App):
-    def build(self):
-        self.tasks = []
+app = Flask(__name__)
 
-        # Main layout
-        layout = BoxLayout(orientation='vertical', padding=10, spacing=10) 
+#Initialize the database
+def init_db():
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT NOT NULL, date TEXT NOT NULL, completed INTEGER DEFAULT 0)''') #0 = not completed, 1 = completed
+    conn.commit()
+    conn.close()
 
-        # Input field for new tasks
-        self.task_input = TextInput(hint_text='Enter a task', size_hint_y=None, height=50)
-        layout.add_widget(self.task_input)
+#Add a task
+@app.route('/add', methods=['POST'])
+def add_task():
+    task = request.form['task']
+    date = request.form['date']
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute('INSERT INTO tasks (task, date) VALUES (?, ?)', (task, date))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
 
-        # Button to add tasks 
-        add_button = Button(text='Add Task', size_hint_y=None, height=50)
-        add_button.bind(on_press=self.add_task)
-        layout.add_widget(add_button)
+#Display all tasks
+@app.route('/')
+def index():
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute('SELECT * FROM tasks ORDER BY date')
+    tasks = c.fetchall()
+    conn.close()
+    return render_template('index.html', tasks=tasks)
 
-        # Scrollable area for tasks
-        self.task_list = GridLayout(cols=1, size_hint_y=None)
-        self.task_list.bind(minimum_height=self.task_list.setter('height'))
+#Delete a task
+@app.route('/delete/<int:task_id>')
+def delete_task(task_id):
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
 
-        scroll_view = ScrollView(size_hint=(1, 1))
-        scroll_view.add_widget(self.task_list)
-        layout.add_widget(scroll_view)
+#Edit a task
+@app.route('/edit/<int:task_id>', methods=['Get', 'POST'])
+def edit_task(task_id):
+    if request.method == 'POST':
+        task = request.form['task']
+        date = request.form['date']
+        conn = sqlite3.connect('todo.db')
+        c = conn.cursor()
+        c.execute('UPDATE tasks SET task = ?, date = ? WHERE id = ?', (task, date, task_id))
+        conn.commit()
+        conn.close()
+        return redirect(url_for('index'))
+    else:
+        conn = sqlite3.connect('todo.db')
+        c = conn.cursor()
+        c.execute('SELECT * FROM tasks WHERE id = ?', (task_id,))
+        task = c.fetchone()
+        conn.close()
+    return render_template('edit.html', task=task)
 
-        return layout
-    
-    def add_task(self, instance):
-        task_text = self.task_input.text.strip()
-        if task_text:
-            task_label = Label(text=task_text, size_hint_y=None, height=40)
-            self.task_list.add_widget(task_label)
-            self.tasks.append(task_text)
-            self.task_input.text = ''
+#Mark a task as completed
+@app.route('/complete/<int:task_id>')
+def complete_task(task_id):
+    conn = sqlite3.connect('todo.db')
+    c = conn.cursor()
+    c.execute('UPDATE tasks SET completed = 1 WHERE id = ?', (task_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    ToDoApp().run()
-            
+    init_db()
+    app.run(debug=True)
